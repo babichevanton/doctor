@@ -1,6 +1,6 @@
 #lang scheme/base
 (define (visit-doctor name)
-  (define (doctor-driver-loop name)
+  (define (doctor-driver-loop name responses)
     (define (reply user-response)
       (define (change-person phrase)
            (many-replace '(
@@ -27,6 +27,10 @@
                        (what makes you think that)
                        )))
 
+      (define (reference)
+        (pick-random '((earlier you said that)
+                       )))
+
       (define (hedge)
         (pick-random '((please go on)
                        (please tell me more about this)
@@ -35,9 +39,10 @@
                        (please continue)
                        )))
       
-      (cond ((fifty-fifty)
-             (append (qualifier) (change-person user-response)))
-            (else (hedge))))
+      (case (choose (random) 1 '(1/3 3/4 1))
+            ((1) (hedge))
+            ((2) (append (qualifier) (change-person user-response)))
+            (else (append (reference) (change-person (pick-random responses))))))
 
     (newline)
     (print '**)
@@ -46,14 +51,15 @@
              (printf "Goodbye, ~a!\n" name)
              (print '(see you next week)))
             (else (print (reply user-response))
-                  (doctor-driver-loop name)))))
+                  (doctor-driver-loop name (cons user-response responses))))))
 
   (printf "Hello, ~a!\n" name)
   (print '(what seems to be the trouble?))
-  (doctor-driver-loop name))
+  (doctor-driver-loop name '()))
 
-(define (fifty-fifty)
-  (= (random 2) 0))
+(define (choose rand numof weights)
+  (cond ((< rand (car weights)) numof)
+        (else (choose rand (+ numof 1) (cdr weights)))))
 
 (define (replace pattern replacement lst)
   (cond ((null? lst) '())
