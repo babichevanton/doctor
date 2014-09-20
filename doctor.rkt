@@ -38,11 +38,15 @@
                        (many of my patients have told me the same thing)
                        (please continue)
                        )))
-      
-      (case (choose (random) 1 '(1/3 3/4 1))
-            ((1) (hedge))
-            ((2) (append (qualifier) (change-person user-response)))
-            (else (append (reference) (change-person (pick-random responses))))))
+      (cond ((null? responses) 
+             (case (choose (random) 1 '(10/27 1))
+                   ((1) (hedge))
+                   (else (append (qualifier) (change-person user-response)))))
+            (else
+             (case (choose (random) 1 '(1/3 9/10 1))
+                   ((1) (hedge))
+                   ((2) (append (qualifier) (change-person user-response)))
+                   (else (append (reference) (change-person (pick-random responses))))))))
 
     (newline)
     (print '**)
