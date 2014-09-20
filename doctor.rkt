@@ -1,5 +1,5 @@
 #lang scheme/base
-(define (visit-doctor name)
+(define (visit-doctor)
   (define (doctor-driver-loop name responses)
     (define (reply user-response)
       (define (change-person phrase)
@@ -53,13 +53,24 @@
     (let ((user-response (myread '())))
       (cond ((equal? user-response '(goodbye))
              (printf "Goodbye, ~a!\n" name)
-             (print '(see you next week)))
+             (print '(see you next week))
+             (newline)
+             (visit-doctor))
             (else (print (reply user-response))
                   (doctor-driver-loop name (cons user-response responses))))))
 
-  (printf "Hello, ~a!\n" name)
-  (print '(what seems to be the trouble?))
-  (doctor-driver-loop name '()))
+  (let ((name (ask-patient-name)))
+       (cond ((equal? name '(suppertime))
+              (print '(It is time to go home)))
+             (else (begin 
+                     (printf "Hello, ~a!\n" (car name))
+                     (print '(what seems to be the trouble?)))
+                   (doctor-driver-loop name '())))))
+
+(define (ask-patient-name)
+  (print '(next!))
+  (print '(who are you?))
+  (myread '()))
 
 (define (choose rand numof weights)
   (cond ((< rand (car weights)) numof)
@@ -91,3 +102,5 @@
              (reverse input))
            (else
              (myread (cons token input))))))
+
+(visit-doctor)
