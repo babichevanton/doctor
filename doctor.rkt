@@ -2,28 +2,52 @@
 (define (visit-doctor)
   (define (doctor-driver-loop name responses)
     (define (reply user-response)
-      (define (change-person phrase)
-           (many-replace '(
-                          (are-change am)
-                          (your-change my)
-                          (yourself-change myself)
-                          (you-change i)
-                          (me you)
-                          (am are) 
-                          (my your)
-                          (myself yourself)
-                          (i you)
-                          (are are-change)
-                          (your your-change)
-                          (yourself yourself-change)
-                          (you you-change)
-                          ) phrase))
+      
+;------------------------------- Strategies-common -------------------------------
+      
+      ;----------------------------- Predicats -----------------------------------
 
+      (define (ptrn-use-strategy-check)
+        ((lambda (lst) (not (null? lst))) (filter (lambda (x) x) (map (lambda (lst) (ptrn-use-check user-response lst)) (pattern-answer)))))
+      
+      (define (reference-strategy-check)
+        (< (length responses) 2))
+
+      (define (hedge-strategy-check)
+        #t)
+
+      (define (qualifier-strategy-check)
+        #t)
+
+      ;-------------------------- Implementations --------------------------------
+
+      (define (ptrn-use-strategy)
+        (pick-random (map cadr (filter (lambda (x) (car x)) (map (lambda (lst) (ptrn-use lst)) (pattern-answer))))))
+      
+      (define (reference-strategy)
+        (append (reference) (change-person (pick-random (cadr responses)))))
+
+      (define (hedge-strategy)
+        (pick-random '((please go on)
+                       (please tell me more about this)
+                       (many people have the same sorts of feelings)
+                       (many of my patients have told me the same thing)
+                       (please continue)
+                       )))
+            
+      (define (qualifier-strategy)
+        (append (qualifier) (change-person user-response)))
+
+      
+;---------------------------- Strategies-particular ------------------------------
+      
+      ;----------------------- Using key-words in response -----------------------
+      
       (define (pattern-answer)
         (list (list '(depressed suicide)
                     (list (list #f '(when you feel depressed go out for ice cream))
                           (list #f '(depression is a disease that can be treated))))
-              (list '(mother father parents syster brother boyfriend girlfriend co-worker boss)
+              (list '(mother father parents syster brother friend boyfriend girlfriend co-worker boss)
                     (list (list #t '(tell me more about your ))
                           (list #t '(why do you feel that way about your ))))))
       
@@ -51,6 +75,31 @@
                  (list #t (form-answer (pick-random found))))
                 (else (list #f)))))
       
+      ;------------------------- Using previous responses ------------------------
+      
+      (define (reference)
+        (pick-random '((earlier you said that)
+                       )))
+
+      ;-------------------------- Qualifier question -----------------------------
+      
+      (define (change-person phrase)
+           (many-replace '(
+                          (are-change am)
+                          (your-change my)
+                          (yourself-change myself)
+                          (you-change i)
+                          (me you)
+                          (am are) 
+                          (my your)
+                          (myself yourself)
+                          (i you)
+                          (are are-change)
+                          (your your-change)
+                          (yourself yourself-change)
+                          (you you-change)
+                          ) phrase))
+
       (define (qualifier)
         (pick-random '((you seem to think)
                        (you feel that)
@@ -59,29 +108,24 @@
                        (what makes you think that)
                        )))
 
-      (define (reference)
-        (pick-random '((earlier you said that)
-                       )))
 
-      (define (hedge)
-        (pick-random '((please go on)
-                       (please tell me more about this)
-                       (many people have the same sorts of feelings)
-                       (many of my patients have told me the same thing)
-                       (please continue)
-                       )))
+;-------------------------------- Choosing strategy ------------------------------
       
-      (cond (((lambda (lst) (not (null? lst))) (filter (lambda (x) x) (map (lambda (lst) (ptrn-use-check lst)) (pattern-answer))))
-             (pick-random (map cadr (filter (lambda (x) (car x)) (map (lambda (lst) (ptrn-use lst)) (pattern-answer))))))
-            ((null? responses)
+      ; TODO - implement common choosing strategy
+      (cond ((ptrn-use-strategy-check)
+             (ptrn-use-strategy))
+            ((reference-strategy-check)
              (case (choose (random) 1 '(10/27 1))
-                   ((1) (hedge))
-                   (else (append (qualifier) (change-person user-response)))))
+                   ((1) (hedge-strategy))
+                   (else (qualifier-strategy))))
             (else
              (case (choose (random) 1 '(1/3 9/10 1))
-                   ((1) (hedge))
-                   ((2) (append (qualifier) (change-person user-response)))
-                   (else (append (reference) (change-person (pick-random responses))))))))
+                   ((1) (hedge-strategy))
+                   ((2) (qualifier-strategy))
+                   (else (reference-strategy))))))
+
+;--------------------------------- End of (reply) --------------------------------
+;------------------------------- Getting response --------------------------------
 
     (newline)
     (print '**)
@@ -94,6 +138,9 @@
             (else (print (reply user-response))
                   (doctor-driver-loop name (cons user-response responses))))))
 
+;--------------------------- End of (doctor-driver-loop) -------------------------
+;----------------------------- Getting patient name ------------------------------
+
   (let ((name (ask-patient-name)))
        (cond ((equal? name '(suppertime))
               (print '(It is time to go home)))
@@ -101,6 +148,10 @@
                      (printf "Hello, ~a!\n" (car name))
                      (print '(what seems to be the trouble?)))
                    (doctor-driver-loop name '())))))
+
+;----------------------------- End of (visit-doctor) -----------------------------
+
+;------------------------------------ Other --------------------------------------
 
 (define (ask-patient-name)
   (print '(next!))
@@ -137,5 +188,8 @@
              (reverse input))
            (else
              (myread (cons token input))))))
+
+
+;---------------------------------- Visit doctor ---------------------------------
 
 (visit-doctor)
