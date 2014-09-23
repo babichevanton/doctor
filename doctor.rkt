@@ -6,20 +6,20 @@
 ;------------------------------- Choosing strategy -------------------------------
 
       (define (strategies-list)
-        (list (list (ptrn-use-strategy-check) 0.3 ptrn-use-strategy)
-              (list (reference-strategy-check) 0.1 reference-strategy)
-              (list (hedge-strategy-check) 0.3 hedge-strategy)
-              (list (qualifier-strategy-check) 0.3 qualifier-strategy)))
+        (list (list (ptrn-use-strategy-check) 35 ptrn-use-strategy)
+              (list (reference-strategy-check) 10 reference-strategy)
+              (list (hedge-strategy-check) 25 hedge-strategy)
+              (list (qualifier-strategy-check) 30 qualifier-strategy)))
 
 ;------------------------------- Strategies-common -------------------------------
       
-      ;----------------------------- Predicats -----------------------------------
+      ;----------------------------- Predicates -----------------------------------
 
       (define (ptrn-use-strategy-check)
         ((lambda (lst) (not (null? lst))) (filter (lambda (x) x) (map (lambda (lst) (ptrn-use-check lst)) (pattern-answer)))))
       
       (define (reference-strategy-check)
-        (> (length responses) 1))
+        (not (null? responses)))
 
       (define (hedge-strategy-check)
         #t)
@@ -30,10 +30,10 @@
       ;-------------------------- Implementations --------------------------------
 
       (define (ptrn-use-strategy)
-        (pick-random (map cadr (filter (lambda (x) (car x)) (map (lambda (lst) (ptrn-use lst)) (pattern-answer))))))
+        (pick-random (filter (lambda (x) (not (null? x))) (map (lambda (lst) (ptrn-use lst)) (pattern-answer)))))
       
       (define (reference-strategy)
-        (append (reference) (change-person (pick-random (cdr responses)))))
+        (append (reference) (change-person (pick-random responses))))
 
       (define (hedge-strategy)
         (pick-random '((please go on)
@@ -56,35 +56,26 @@
       
       (define (pattern-answer)
         (list (list '(depressed suicide)
-                    (list (list #f '(when you feel depressed go out for ice cream))
-                          (list #f '(depression is a disease that can be treated))))
-              (list '(mother father parents syster brother friend boyfriend girlfriend co-worker boss)
-                    (list (list #t '(tell me more about your ))
-                          (list #t '(why do you feel that way about your ))))))
-      
-      (define (search_word word phrase)
-        (cond ((null? phrase) null)
-              ((equal? word (car phrase)) word)
-              (else (search_word word (cdr phrase)))))
+                    (list '(when you feel depressed go out for ice cream)
+                          '(depression is a disease that can be treated)))
+              (list '(mother father parents sister brother friend boyfriend girlfriend co-worker boss)
+                    (list '(tell me more about your *)
+                          '(why do you feel that way about your * ?)))))
       
       (define (examine_phrase ptrn_lst)
-        (filter (lambda (x) (not (null? x))) (map (lambda (word) (search_word word user-response)) ptrn_lst)))
+        (filter (lambda (word) (member word user-response)) ptrn_lst))
       
       (define (ptrn-use-check scenario)
-        (let ((found (examine_phrase (car scenario))))
-          ((lambda (x) (not (null? x))) found)))
+        (findf (lambda (word) (member word user-response)) (car scenario)))
       
       (define (ptrn-use scenario)
         (define (form-answer word)
-          (let ((answer (pick-random (cadr scenario))))
-            (cond ((car answer)
-                   (append (cadr answer) (list word)))
-                  (else (cadr answer)))))
+          (replace (car '(*)) word (pick-random (cadr scenario))))
         
         (let ((found (examine_phrase (car scenario))))
-          (cond (((lambda (x) (not (null? x))) found)
-                 (list #t (form-answer (pick-random found))))
-                (else (list #f)))))
+          (cond ((not (null? found))
+                 (form-answer (pick-random found)))
+                (else null))))
       
       ;------------------------- Using previous responses ------------------------
       
@@ -96,19 +87,11 @@
       
       (define (change-person phrase)
            (many-replace '(
-                          (are-change am)
-                          (your-change my)
-                          (yourself-change myself)
-                          (you-change i)
-                          (me you)
+                          (me you #f)
                           (am are) 
                           (my your)
                           (myself yourself)
                           (i you)
-                          (are are-change)
-                          (your your-change)
-                          (yourself yourself-change)
-                          (you you-change)
                           ) phrase))
 
       (define (qualifier)
@@ -118,32 +101,24 @@
                        (why do you say)
                        ; Added
                        (what makes you think that)
-                       (you have sad that)
+                       (you have said that)
                        (how does it show that)
                        )))
 
 
 ;-------------------------------- Choosing strategy ------------------------------
       
-      ; TODO - implement common choosing strategy
-      (cond ((ptrn-use-strategy-check)
-             (ptrn-use-strategy))
-            ((reference-strategy-check)
-             (case (choose (random) 1 '(10/27 1))
-                   ((1) (hedge-strategy))
-                   (else (qualifier-strategy))))
-            (else
-             (case (choose (random) 1 '(1/3 9/10 1))
-                   ((1) (hedge-strategy))
-                   ((2) (qualifier-strategy))
-                   (else (reference-strategy))))))
+      (let ((possible-strategies (filter (lambda (x) (car x)) (strategies-list))))
+        ((choose-strategy (random (foldr + 0 (map (lambda (x) (cadr x)) possible-strategies)))
+                         (map (lambda (x) (caddr x)) possible-strategies)
+                         (make-weights-row (map (lambda (x) (cadr x)) possible-strategies))))))
 
 ;--------------------------------- End of (reply) --------------------------------
 ;------------------------------- Getting response --------------------------------
 
     (newline)
     (print '**)
-    (let ((user-response (myread '())))
+    (let ((user-response (read)))
       (cond ((equal? user-response '(goodbye))
              (printf "Goodbye, ~a!\n" name)
              (print '(see you next week))
@@ -170,11 +145,26 @@
 (define (ask-patient-name)
   (print '(next!))
   (print '(who are you?))
-  (myread '()))
+  (read))
 
-(define (choose rand numof weights)
-  (cond ((< rand (car weights)) numof)
-        (else (choose rand (+ numof 1) (cdr weights)))))
+
+(define (make-weights-row weights)
+  (define (make-sum lst)
+    (cond ((null? lst) (list 0))
+          (else (let ((sublist (make-sum (cdr lst))))
+                  (append (list (+ (car lst) (car sublist))) sublist)))))
+  
+  (cdr (reverse (make-sum (reverse weights)))))
+
+
+(define (choose-strategy rand strategies weights)
+  (cond ((< rand (car weights)) (car strategies))
+        (else (choose-strategy rand (cdr strategies) (cdr weights)))))
+
+
+(define (pick-random lst)
+  (list-ref lst (random (length lst))))
+
 
 (define (replace pattern replacement lst)
   (cond ((null? lst) '())
@@ -185,23 +175,20 @@
          (cons (car lst)
                (replace pattern replacement (cdr lst))))))
 
-(define (pick-random lst)
-  (list-ref lst (random (length lst))))
 
 (define (many-replace replacement-pairs lst)
         (cond ((null? replacement-pairs) lst)
+              ((and (= (length (car replacement-pairs)) 3) (not (list-ref (car replacement-pairs) 2)))
+               (let ((pat-rep (car replacement-pairs)))
+                      (replace (car pat-rep) (cadr pat-rep) (many-replace (cdr replacement-pairs) lst)))) 
               (else (let ((pat-rep (car replacement-pairs)))
-                      (replace (car pat-rep)
-                               (cadr pat-rep)
-                               (many-replace (cdr replacement-pairs) lst))))))
-
-(define (myread input) 
-  (let ((token (read)))
-    (cond ((eof-object? token)
-             (newline)
-             (reverse input))
-           (else
-             (myread (cons token input))))))
+                      (replace * 
+                               (cadr pat-rep) 
+                               (replace (cadr pat-rep) 
+                                        (car pat-rep) 
+                                        (replace (car pat-rep) 
+                                                 * 
+                                                 (many-replace (cdr replacement-pairs) lst))))))))
 
 
 ;---------------------------------- Visit doctor ---------------------------------
