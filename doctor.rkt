@@ -6,9 +6,9 @@
 ;------------------------------- Choosing strategy -------------------------------
 
       (define (strategies-list)
-        (list (list (ptrn-use-strategy-check) 30 ptrn-use-strategy)
+        (list (list (ptrn-use-strategy-check) 35 ptrn-use-strategy)
               (list (reference-strategy-check) 10 reference-strategy)
-              (list (hedge-strategy-check) 30 hedge-strategy)
+              (list (hedge-strategy-check) 25 hedge-strategy)
               (list (qualifier-strategy-check) 30 qualifier-strategy)))
 
 ;------------------------------- Strategies-common -------------------------------
@@ -108,21 +108,10 @@
 
 ;-------------------------------- Choosing strategy ------------------------------
       
-      ; TODO - implement common choosing strategy
-      
-      ;(cond ((ptrn-use-strategy-check)
-      ;       (ptrn-use-strategy))
-      ;      ((reference-strategy-check)
-      ;       (case (choose (random) 1 '(10/27 1))
-      ;             ((1) (hedge-strategy))
-      ;             (else (qualifier-strategy))))
-      ;      (else
-      ;       (case (choose (random) 1 '(1/3 9/10 1))
-      ;             ((1) (hedge-strategy))
-      ;             ((2) (qualifier-strategy))
-      ;             (else (reference-strategy)))))
-      
-      ((pick-random (map (lambda (x) (caddr x)) (filter (lambda (x) (car x)) (strategies-list))))))
+      (let ((possible-strategies (filter (lambda (x) (car x)) (strategies-list))))
+        ((choose-strategy (random (foldr + 0 (map (lambda (x) (cadr x)) possible-strategies)))
+                         (map (lambda (x) (caddr x)) possible-strategies)
+                         (make-weights-row (map (lambda (x) (cadr x)) possible-strategies))))))
 
 ;--------------------------------- End of (reply) --------------------------------
 ;------------------------------- Getting response --------------------------------
@@ -158,9 +147,24 @@
   (print '(who are you?))
   (read))
 
-(define (choose rand numof weights)
-  (cond ((< rand (car weights)) numof)
-        (else (choose rand (+ numof 1) (cdr weights)))))
+
+(define (make-weights-row weights)
+  (define (make-sum lst)
+    (cond ((null? lst) (list 0))
+          (else (let ((sublist (make-sum (cdr lst))))
+                  (append (list (+ (car lst) (car sublist))) sublist)))))
+  
+  (cdr (reverse (make-sum (reverse weights)))))
+
+
+(define (choose-strategy rand strategies weights)
+  (cond ((< rand (car weights)) (car strategies))
+        (else (choose-strategy rand (cdr strategies) (cdr weights)))))
+
+
+(define (pick-random lst)
+  (list-ref lst (random (length lst))))
+
 
 (define (replace pattern replacement lst)
   (cond ((null? lst) '())
@@ -171,8 +175,6 @@
          (cons (car lst)
                (replace pattern replacement (cdr lst))))))
 
-(define (pick-random lst)
-  (list-ref lst (random (length lst))))
 
 (define (many-replace replacement-pairs lst)
         (cond ((null? replacement-pairs) lst)
