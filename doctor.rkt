@@ -3,15 +3,23 @@
   (define (doctor-driver-loop name responses)
     (define (reply user-response)
       
+;------------------------------- Choosing strategy -------------------------------
+
+      (define (strategies-list)
+        (list (list (ptrn-use-strategy-check) 0.3 ptrn-use-strategy)
+              (list (reference-strategy-check) 0.1 reference-strategy)
+              (list (hedge-strategy-check) 0.3 hedge-strategy)
+              (list (qualifier-strategy-check) 0.3 qualifier-strategy)))
+
 ;------------------------------- Strategies-common -------------------------------
       
       ;----------------------------- Predicats -----------------------------------
 
       (define (ptrn-use-strategy-check)
-        ((lambda (lst) (not (null? lst))) (filter (lambda (x) x) (map (lambda (lst) (ptrn-use-check user-response lst)) (pattern-answer)))))
+        ((lambda (lst) (not (null? lst))) (filter (lambda (x) x) (map (lambda (lst) (ptrn-use-check lst)) (pattern-answer)))))
       
       (define (reference-strategy-check)
-        (< (length responses) 2))
+        (> (length responses) 1))
 
       (define (hedge-strategy-check)
         #t)
@@ -25,14 +33,17 @@
         (pick-random (map cadr (filter (lambda (x) (car x)) (map (lambda (lst) (ptrn-use lst)) (pattern-answer))))))
       
       (define (reference-strategy)
-        (append (reference) (change-person (pick-random (cadr responses)))))
+        (append (reference) (change-person (pick-random (cdr responses)))))
 
       (define (hedge-strategy)
         (pick-random '((please go on)
                        (please tell me more about this)
                        (many people have the same sorts of feelings)
                        (many of my patients have told me the same thing)
+                       ; Added
                        (please continue)
+                       (i heared this from most my patients)
+                       (could you say more about it)
                        )))
             
       (define (qualifier-strategy)
@@ -105,7 +116,10 @@
                        (you feel that)
                        (why do you believe)
                        (why do you say)
+                       ; Added
                        (what makes you think that)
+                       (you have sad that)
+                       (how does it show that)
                        )))
 
 
