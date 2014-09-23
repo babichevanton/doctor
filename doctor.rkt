@@ -19,6 +19,38 @@
                           (you you-change)
                           ) phrase))
 
+      (define (pattern-answer)
+        (list (list '(depressed suicide)
+                    (list (list #f '(when you feel depressed go out for ice cream))
+                          (list #f '(depression is a disease that can be treated))))
+              (list '(mother father parents syster brother boyfriend girlfriend co-worker boss)
+                    (list (list #t '(tell me more about your ))
+                          (list #t '(why do you feel that way about your ))))))
+      
+      (define (search_word word phrase)
+        (cond ((null? phrase) null)
+              ((equal? word (car phrase)) word)
+              (else (search_word word (cdr phrase)))))
+      
+      (define (examine_phrase ptrn_lst)
+        (filter (lambda (x) (not (null? x))) (map (lambda (word) (search_word word user-response)) ptrn_lst)))
+      
+      (define (ptrn-use-check scenario)
+        (let ((found (examine_phrase (car scenario))))
+          ((lambda (x) (not (null? x))) found)))
+      
+      (define (ptrn-use scenario)
+        (define (form-answer word)
+          (let ((answer (pick-random (cadr scenario))))
+            (cond ((car answer)
+                   (append (cadr answer) (list word)))
+                  (else (cadr answer)))))
+        
+        (let ((found (examine_phrase (car scenario))))
+          (cond (((lambda (x) (not (null? x))) found)
+                 (list #t (form-answer (pick-random found))))
+                (else (list #f)))))
+      
       (define (qualifier)
         (pick-random '((you seem to think)
                        (you feel that)
@@ -26,22 +58,6 @@
                        (why do you say)
                        (what makes you think that)
                        )))
-
-      (define (qualify)
-        (pick-random '((tell me more about your)
-                       )))
-
-      (define (words-for-qualify)
-        '(parents
-          mother
-          father
-          sister
-          brother
-          boyfriend
-          girlfriend
-          co-worker
-          boss
-          ))
 
       (define (reference)
         (pick-random '((earlier you said that)
@@ -55,9 +71,8 @@
                        (please continue)
                        )))
       
-      (cond (((lambda (x) (not (null? x))) (examine_phrase user-response (words-for-qualify)))
-             (let ((to-qualify (pick-random (examine_phrase user-response (words-for-qualify)))))
-                  (append (qualify) (cons to-qualify null))))
+      (cond (((lambda (lst) (not (null? lst))) (filter (lambda (x) x) (map (lambda (lst) (ptrn-use-check lst)) (pattern-answer))))
+             (pick-random (map cadr (filter (lambda (x) (car x)) (map (lambda (lst) (ptrn-use lst)) (pattern-answer))))))
             ((null? responses)
              (case (choose (random) 1 '(10/27 1))
                    ((1) (hedge))
@@ -95,14 +110,6 @@
 (define (choose rand numof weights)
   (cond ((< rand (car weights)) numof)
         (else (choose rand (+ numof 1) (cdr weights)))))
-
-(define (search_word word phrase)
-        (cond ((null? phrase) null)
-              ((equal? word (car phrase)) word)
-              (else (search_word word (cdr phrase)))))
-
-(define (examine_phrase phrase ptrn_lst)
-        (filter (lambda (x) (not (null? x))) (map (lambda (word) (search_word word phrase)) ptrn_lst)))
 
 (define (replace pattern replacement lst)
   (cond ((null? lst) '())
