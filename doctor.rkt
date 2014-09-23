@@ -27,6 +27,22 @@
                        (what makes you think that)
                        )))
 
+      (define (qualify)
+        (pick-random '((tell me more about your)
+                       )))
+
+      (define (words-for-qualify)
+        '(parents
+          mother
+          father
+          sister
+          brother
+          boyfriend
+          girlfriend
+          co-worker
+          boss
+          ))
+
       (define (reference)
         (pick-random '((earlier you said that)
                        )))
@@ -38,7 +54,11 @@
                        (many of my patients have told me the same thing)
                        (please continue)
                        )))
-      (cond ((null? responses) 
+      
+      (cond (((lambda (x) (not (null? x))) (examine_phrase user-response (words-for-qualify)))
+             (let ((to-qualify (pick-random (examine_phrase user-response (words-for-qualify)))))
+                  (append (qualify) (cons to-qualify null))))
+            ((null? responses)
              (case (choose (random) 1 '(10/27 1))
                    ((1) (hedge))
                    (else (append (qualifier) (change-person user-response)))))
@@ -75,6 +95,14 @@
 (define (choose rand numof weights)
   (cond ((< rand (car weights)) numof)
         (else (choose rand (+ numof 1) (cdr weights)))))
+
+(define (search_word word phrase)
+        (cond ((null? phrase) null)
+              ((equal? word (car phrase)) word)
+              (else (search_word word (cdr phrase)))))
+
+(define (examine_phrase phrase ptrn_lst)
+        (filter (lambda (x) (not (null? x))) (map (lambda (word) (search_word word phrase)) ptrn_lst)))
 
 (define (replace pattern replacement lst)
   (cond ((null? lst) '())
