@@ -30,7 +30,7 @@
       ;-------------------------- Implementations --------------------------------
 
       (define (ptrn-use-strategy)
-        (pick-random (map (lambda (lst) (ptrn-use lst)) (pattern-answer))))
+        (pick-random (filter (lambda (x) (not (null? x))) (map (lambda (lst) (ptrn-use lst)) (pattern-answer)))))
       
       (define (reference-strategy)
         (append (reference) (change-person (pick-random responses))))
@@ -70,7 +70,7 @@
       
       (define (ptrn-use scenario)
         (define (form-answer word)
-          (replace * word (pick-random (cadr scenario))))
+          (replace (car '(*)) word (pick-random (cadr scenario))))
         
         (let ((found (examine_phrase (car scenario))))
           (cond ((not (null? found))
